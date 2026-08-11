@@ -23,6 +23,12 @@ import (
 const (
 	maxTokens = 512
 	batchSize = 8
+	// ProviderLocalONNX identifies the only P0 embedding implementation.
+	ProviderLocalONNX = "local-onnx"
+	// ChunkSizeTokens is the target passage size for the pinned E5 profile.
+	ChunkSizeTokens = 384
+	// ChunkOverlapTokens is retained when a long sentence needs forced splitting.
+	ChunkOverlapTokens = 64
 	// VectorDimension is the only vector size supported by the pinned E5 model.
 	VectorDimension = 384
 )
@@ -36,11 +42,16 @@ var (
 	ErrTemporarilyUnavailable = errors.New("embedding temporarily unavailable")
 )
 
-// Profile is the minimal processing contract required by the E5 engine.
+// Profile is the immutable processing contract required by the E5 engine.
+// The provider validates every field before inference so a query can never use
+// a model contract different from the one that produced stored chunks.
 type Profile struct {
-	EmbeddingModelID string
-	VectorDimension  int
-	Distance         string
+	Provider           string
+	EmbeddingModelID   string
+	VectorDimension    int
+	Distance           string
+	ChunkSizeTokens    int
+	ChunkOverlapTokens int
 }
 
 // Provider creates query and passage vectors for one immutable embedding
@@ -242,8 +253,7 @@ func (e *E5) CountTokens(text string) (int, error) {
 }
 
 func (e *E5) embed(ctx context.Context, texts []string, profile Profile) ([][]float32, error) {
-	if profile.EmbeddingModelID != e.profileModelID || profile.VectorDimension != VectorDimension ||
-		profile.Distance != "cosine" {
+	if !validProfile(profile, e.profileModelID) {
 		return nil, ErrProfileMismatch
 	}
 	if err := acquireEmbeddingSlot(ctx, e.semaphore); err != nil {
@@ -268,6 +278,15 @@ func (e *E5) embed(ctx context.Context, texts []string, profile Profile) ([][]fl
 		result = append(result, vectors...)
 	}
 	return result, nil
+}
+
+func validProfile(profile Profile, modelID string) bool {
+	return profile.Provider == ProviderLocalONNX &&
+		profile.EmbeddingModelID == modelID &&
+		profile.VectorDimension == VectorDimension &&
+		profile.Distance == "cosine" &&
+		profile.ChunkSizeTokens == ChunkSizeTokens &&
+		profile.ChunkOverlapTokens == ChunkOverlapTokens
 }
 
 func acquireEmbeddingSlot(ctx context.Context, semaphore chan struct{}) error {

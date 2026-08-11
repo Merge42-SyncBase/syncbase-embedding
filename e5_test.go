@@ -53,6 +53,34 @@ func TestAcquireEmbeddingSlotHonorsCancellationAndBudget(t *testing.T) {
 	}
 }
 
+func TestValidProfileRejectsAnyPinnedContractMismatch(t *testing.T) {
+	t.Parallel()
+
+	valid := Profile{
+		Provider: ProviderLocalONNX, EmbeddingModelID: "intfloat/multilingual-e5-small",
+		VectorDimension: VectorDimension, Distance: "cosine",
+		ChunkSizeTokens: ChunkSizeTokens, ChunkOverlapTokens: ChunkOverlapTokens,
+	}
+	if !validProfile(valid, "intfloat/multilingual-e5-small") {
+		t.Fatal("valid profile rejected")
+	}
+	for _, test := range []struct {
+		name    string
+		profile Profile
+	}{
+		{name: "provider", profile: Profile{EmbeddingModelID: valid.EmbeddingModelID, VectorDimension: valid.VectorDimension, Distance: valid.Distance, ChunkSizeTokens: valid.ChunkSizeTokens, ChunkOverlapTokens: valid.ChunkOverlapTokens}},
+		{name: "chunk size", profile: Profile{Provider: valid.Provider, EmbeddingModelID: valid.EmbeddingModelID, VectorDimension: valid.VectorDimension, Distance: valid.Distance, ChunkSizeTokens: valid.ChunkSizeTokens - 1, ChunkOverlapTokens: valid.ChunkOverlapTokens}},
+		{name: "chunk overlap", profile: Profile{Provider: valid.Provider, EmbeddingModelID: valid.EmbeddingModelID, VectorDimension: valid.VectorDimension, Distance: valid.Distance, ChunkSizeTokens: valid.ChunkSizeTokens, ChunkOverlapTokens: valid.ChunkOverlapTokens - 1}},
+		{name: "distance", profile: Profile{Provider: valid.Provider, EmbeddingModelID: valid.EmbeddingModelID, VectorDimension: valid.VectorDimension, Distance: "l2", ChunkSizeTokens: valid.ChunkSizeTokens, ChunkOverlapTokens: valid.ChunkOverlapTokens}},
+	} {
+		t.Run(test.name, func(t *testing.T) {
+			if validProfile(test.profile, "intfloat/multilingual-e5-small") {
+				t.Fatalf("profile %+v accepted", test.profile)
+			}
+		})
+	}
+}
+
 func TestPinnedE5ArtifactsProduceDeterministicSemanticVectors(t *testing.T) {
 	model := os.Getenv("SYNCBASE_TEST_E5_MODEL_PATH")
 	tokenizer := os.Getenv("SYNCBASE_TEST_E5_TOKENIZER_PATH")
@@ -64,9 +92,12 @@ func TestPinnedE5ArtifactsProduceDeterministicSemanticVectors(t *testing.T) {
 		t.Skip("pinned E5 test artifacts are not configured")
 	}
 	profile := Profile{
-		EmbeddingModelID: "intfloat/multilingual-e5-small",
-		VectorDimension:  VectorDimension,
-		Distance:         "cosine",
+		Provider:           ProviderLocalONNX,
+		EmbeddingModelID:   "intfloat/multilingual-e5-small",
+		VectorDimension:    VectorDimension,
+		Distance:           "cosine",
+		ChunkSizeTokens:    ChunkSizeTokens,
+		ChunkOverlapTokens: ChunkOverlapTokens,
 	}
 	service, err := New(Config{
 		ModelPath:          model,

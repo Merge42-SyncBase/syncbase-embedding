@@ -21,8 +21,8 @@ import (
 )
 
 const (
-	maxTokens       = 512
-	batchSize       = 8
+	maxTokens = 512
+	batchSize = 8
 	// VectorDimension is the only vector size supported by the pinned E5 model.
 	VectorDimension = 384
 )
@@ -41,6 +41,17 @@ type Profile struct {
 	EmbeddingModelID string
 	VectorDimension  int
 	Distance         string
+}
+
+// Provider creates query and passage vectors for one immutable embedding
+// profile. Callers own the provider lifecycle and must call Close when they no
+// longer need local inference resources.
+type Provider interface {
+	EmbedQuery(context.Context, string, Profile) ([]float32, error)
+	EmbedPassages(context.Context, []string, Profile) ([][]float32, error)
+	CountTokens(string) (int, error)
+	Ready(context.Context) error
+	Close() error
 }
 
 // Config identifies the pinned model, tokenizer, and ONNX Runtime artifacts.
@@ -65,6 +76,8 @@ type E5 struct {
 	mu             sync.RWMutex
 	closed         bool
 }
+
+var _ Provider = (*E5)(nil)
 
 // New verifies pinned artifacts and initializes the bounded ONNX runtime.
 func New(config Config) (*E5, error) {

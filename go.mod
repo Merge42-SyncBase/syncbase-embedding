@@ -4,7 +4,7 @@ go 1.26.5
 
 require (
 	github.com/sugarme/tokenizer v0.3.0
-	github.com/yalue/onnxruntime_go v1.31.0
+	github.com/yalue/onnxruntime_go v1.32.0
 )
 
 require (

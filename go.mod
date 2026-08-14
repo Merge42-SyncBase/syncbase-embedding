@@ -1,6 +1,6 @@
 module github.com/Merge42-SyncBase/syncbase-embedding
 
-go 1.26.5
+go 1.26.6
 
 require (
 	github.com/sugarme/tokenizer v0.3.0

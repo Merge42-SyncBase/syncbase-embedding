@@ -1,0 +1,60 @@
+name: CI
+
+on:
+  pull_request:
+    branches: [main]
+  push:
+    branches: [main]
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-go@v5
+        with:
+          go-version: "1.26.6"
+
+      - run: go build ./...
+      - run: go vet ./...
+      # SYNCBASE_TEST_E5_MODEL_PATH etc. are intentionally left unset, so the
+      # pinned-artifact integration test self-skips (it needs the real ONNX
+      # model/runtime, which this workflow does not provision).
+      - run: go test ./...
+
+  # Keeps syncbase-was's pinned version of this module current without a
+  # human manually computing a pseudo-version after every merge.
+  bump-was:
+    if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+    needs: test
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          repository: Merge42-SyncBase/syncbase-was
+          token: ${{ secrets.GH_MODULES_TOKEN }}
+
+      - uses: actions/setup-go@v5
+        with:
+          go-version: "1.26.6"
+
+      - name: Configure private module access
+        run: git config --global url."https://x-access-token:${{ secrets.GH_MODULES_TOKEN }}@github.com/".insteadOf "https://github.com/"
+
+      - run: |
+          go env -w GOPRIVATE=github.com/Merge42-SyncBase/*
+          go get github.com/Merge42-SyncBase/syncbase-embedding@${{ github.sha }}
+          go mod tidy
+          go build ./cmd/...
+
+      - uses: peter-evans/create-pull-request@v6
+        with:
+          token: ${{ secrets.GH_MODULES_TOKEN }}
+          commit-message: "chore: bump syncbase-embedding to ${{ github.sha }}"
+          branch: chore/bump-syncbase-embedding
+          delete-branch: true
+          title: "chore: bump syncbase-embedding"
+          body: |
+            Auto-generated after a merge to `syncbase-embedding@main`
+            (${{ github.sha }}). Review the diff, confirm CI passes, then merge.

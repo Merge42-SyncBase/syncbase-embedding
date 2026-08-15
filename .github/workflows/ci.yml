@@ -46,7 +46,10 @@ jobs:
           go env -w GOPRIVATE=github.com/Merge42-SyncBase/*
           go get github.com/Merge42-SyncBase/syncbase-embedding@${{ github.sha }}
           go mod tidy
-          go build ./cmd/...
+          # -o /dev/null: avoids writing a binary to the working directory if
+          # this pattern ever resolves to a single package (it currently
+          # expands to 3: web/worker/migrate, but don't rely on that).
+          go build -o /dev/null ./cmd/...
 
       - uses: peter-evans/create-pull-request@v6
         with:
@@ -54,6 +57,9 @@ jobs:
           commit-message: "chore: bump syncbase-embedding to ${{ github.sha }}"
           branch: chore/bump-syncbase-embedding
           delete-branch: true
+          add-paths: |
+            go.mod
+            go.sum
           title: "chore: bump syncbase-embedding"
           body: |
             Auto-generated after a merge to `syncbase-embedding@main`

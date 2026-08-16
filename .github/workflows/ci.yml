@@ -23,6 +23,44 @@ jobs:
       # model/runtime, which this workflow does not provision).
       - run: go test ./...
 
+  # Builds the one-shot init container that downloads the pinned E5 model +
+  # ONNX Runtime into a compose volume (used by syncbase-infra's `models`
+  # service). Not the embedding library itself — a separate utility image.
+  docker:
+    if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+    needs: test
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+    steps:
+      - uses: actions/checkout@v4
+
+      - id: vars
+        run: echo "sha_short=$(git rev-parse --short=7 HEAD)" >> "$GITHUB_OUTPUT"
+
+      - uses: docker/setup-qemu-action@v3
+
+      - uses: docker/setup-buildx-action@v3
+
+      - uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: ops/model/Dockerfile
+          platforms: linux/amd64,linux/arm64
+          push: true
+          cache-from: type=gha,scope=model-fetcher
+          cache-to: type=gha,mode=max,scope=model-fetcher
+          tags: |
+            ghcr.io/merge42-syncbase/syncbase-model-fetcher:latest
+            ghcr.io/merge42-syncbase/syncbase-model-fetcher:sha-${{ steps.vars.outputs.sha_short }}
+
   # Keeps syncbase-was's pinned version of this module current without a
   # human manually computing a pseudo-version after every merge.
   bump-was:

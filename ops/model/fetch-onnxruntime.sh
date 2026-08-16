@@ -38,7 +38,7 @@ esac
 temporary="$(mktemp -d "${TMPDIR:-/tmp}/syncbase-ort.XXXXXX")"
 trap 'rm -rf "$temporary"' EXIT
 url="https://github.com/microsoft/onnxruntime/releases/download/v${version}/${archive}"
-curl --fail --location --silent --show-error "$url" --output "$temporary/$archive"
+curl --fail --location --silent --show-error --retry 3 --retry-connrefused "$url" --output "$temporary/$archive"
 actual="$(shasum -a 256 "$temporary/$archive" | awk '{print $1}')"
 if [[ "$actual" != "$expected" ]]; then
   echo "ONNX Runtime archive SHA-256 mismatch" >&2

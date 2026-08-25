@@ -7,3 +7,11 @@ go test ./...
 ops/model/fetch-e5-small.sh /absolute/model-dir
 ops/model/fetch-onnxruntime.sh /absolute/runtime-dir linux-amd64
 ```
+
+## License
+
+SyncBase vector embedding의 자체 소스는 [Apache License 2.0](LICENSE)
+(`Apache-2.0`)으로 배포합니다. `multilingual-e5-small`, ONNX Runtime,
+tokenizer 구현체 등 외부
+구성요소는 각자의 라이선스를 따르며 세부 출처는
+[THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md)에 기록합니다.

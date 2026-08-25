@@ -9,5 +9,6 @@ RUN apt-get update \
     && apt-get install -y --no-install-recommends bash curl ca-certificates perl \
     && rm -rf /var/lib/apt/lists/*
 COPY ops/model/fetch-e5-small.sh ops/model/fetch-onnxruntime.sh ops/model/entrypoint.sh /usr/local/bin/
+COPY LICENSE THIRD_PARTY_NOTICES.md /usr/share/licenses/syncbase-embedding/
 RUN chmod +x /usr/local/bin/fetch-e5-small.sh /usr/local/bin/fetch-onnxruntime.sh /usr/local/bin/entrypoint.sh
 ENTRYPOINT ["/usr/local/bin/entrypoint.sh"]

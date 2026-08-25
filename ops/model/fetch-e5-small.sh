@@ -9,8 +9,9 @@ fi
 model_dir="$1"
 model_sha="ca456c06b3a9505ddfd9131408916dd79290368331e7d76bb621f1cba6bc8665"
 tokenizer_sha="0b44a9d7b51c3c62626640cda0e2c2f70fdacdc25bbbd68038369d14ebdf4c39"
-model_url="https://huggingface.co/intfloat/multilingual-e5-small/resolve/main/onnx/model.onnx"
-tokenizer_url="https://huggingface.co/intfloat/multilingual-e5-small/resolve/main/onnx/tokenizer.json"
+model_revision="614241f622f53c4eeff9890bdc4f31cfecc418b3"
+model_url="https://huggingface.co/intfloat/multilingual-e5-small/resolve/${model_revision}/onnx/model.onnx"
+tokenizer_url="https://huggingface.co/intfloat/multilingual-e5-small/resolve/${model_revision}/onnx/tokenizer.json"
 
 mkdir -p "$model_dir"
 hash_file() {
